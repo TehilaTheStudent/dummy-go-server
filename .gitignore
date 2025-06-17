@@ -1,0 +1,28 @@
+# Binaries
+/server
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Output of go build
+*.out
+
+# Dependency directories (vendor/)
+vendor/
+
+# IDE/editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Go modules cache
+/go.sum
