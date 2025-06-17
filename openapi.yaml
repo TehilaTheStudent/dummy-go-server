@@ -5,6 +5,7 @@ info:
   description: REST API for managing users
 servers:
   - url: http://localhost:8080
+  - url: https://dummy-go-server.onrender.com
 paths:
   /health:
     get:
