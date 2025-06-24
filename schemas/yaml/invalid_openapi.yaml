@@ -1,0 +1,18 @@
+openapi: 3.0.3
+info:
+  title: Invalid OpenAPI Schema
+  version: 1.0.0
+  description: This is an intentionally invalid OpenAPI schema for testing
+# Missing required paths section
+components:
+  schemas:
+    User:
+      # Missing type property which is required
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - name

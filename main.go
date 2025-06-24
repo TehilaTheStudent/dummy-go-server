@@ -23,6 +23,14 @@ func main() {
 		r.Put("/{id}", updateUser)
 		r.Delete("/{id}", deleteUser)
 	})
+	
+	// OpenAPI schema routes
+	r.Get("/schemas", listAvailableSchemas) // List all available schemas
+	r.Get("/schemas/*", serveOpenAPISchema) // Serve specific schema files
+	
+	// Conversion routes
+	r.Get("/convert/yaml-to-json/*", convertYAMLToJSON)
+	r.Get("/convert/json-to-yaml/*", convertJSONToYAML)
 
 	port := os.Getenv("PORT")
 	if port == "" {
