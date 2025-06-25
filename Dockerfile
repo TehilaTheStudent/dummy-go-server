@@ -11,7 +11,7 @@ RUN go build -o server .
 FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/server ./server
-COPY openapi.yaml ./openapi.yaml
+COPY schemas/ ./schemas
 EXPOSE 8080
 ENV PORT=8080
 CMD ["./server"]
