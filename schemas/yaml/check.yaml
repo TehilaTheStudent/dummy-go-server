@@ -1,0 +1,118 @@
+openapi: 3.0.0
+info:
+  description: devcloud build api
+  version: v1
+  title: CloudBuild
+servers:
+  - url: https://codearts-check.ap-southeast-3.myhuaweicloud.com
+    description: Production server
+tags:
+  - name: Check Tasks
+security:
+  - AuthToken: []
+paths:
+  /v2/{project_id}/tasks:
+    get:
+      tags:
+        - Check Tasks
+      description: >
+        Query the list of code check tasks in the CodeArts Check module.
+        A code check task defines static analysis rules or security scans to evaluate source code quality. 
+        These tasks can be used as steps in a pipeline using the `official_devcloud_codeCheck` plugin.
+      operationId: queryCheckTasks
+      parameters:
+        - $ref: '#/components/parameters/Path-Project-Id'
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+          description: Offset for pagination.
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            maximum: 100
+            default: 10
+          description: Number of items displayed on each page. A maximum of 100 items are supported.
+      security:
+        - AuthToken: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SimpleTaskInfoV2'
+                    description: Task information.
+                  total:
+                    type: integer
+                    description: Total number.
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+ 
+
+components:
+  parameters:
+    Path-Project-Id:
+      name: project_id
+      in: path
+      required: true
+      description: Project ID
+      schema:
+        type: string
+  securitySchemes:
+    AuthToken:
+      type: apiKey
+      name: x-auth-token
+      in: header
+      description: User authentication token required for API access
+  schemas:
+    SimpleTaskInfoV2:
+      type: object
+      properties:
+        task_id:
+          type: string
+          description: Task ID.
+        task_name:
+          type: string
+          description: Task name.
+        creator_id:
+          type: string
+          description: Creator ID.
+        git_url:
+          type: string
+          description: Code repository address.
+        git_branch:
+          type: string
+          description: Code repository branch. If the MR mode is used, the value is the source branch.
+        created_at:
+          type: string
+          description: Creation time.
+        last_check_time:
+          type: string
+          description: Last check time.
+    ErrorResponse:
+      type: object
+      properties:
+        error_code:
+          type: string
+        error_msg:
+          type: string

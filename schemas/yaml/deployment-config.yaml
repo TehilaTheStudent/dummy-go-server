@@ -1,0 +1,351 @@
+openapi: 3.0.0
+info:
+  description: CloudReleaseServer v1.0
+  title: CloudReleaseServer
+  version: v1.0
+servers:
+  - url: https://cloudrelease-ext.ap-southeast-3.myhuaweicloud.com
+    description: Production server
+security:
+  - AuthToken: []
+components:
+  securitySchemes:
+    AuthToken:
+      type: apiKey
+      name: x-auth-token
+      in: header
+      description: User authentication token required for API access
+  schemas:
+    DeploymentManifest:
+      type: object
+      properties:
+        deployer:
+          type: string
+          enum: [gitops, releasePolicy]
+          description: deployer name
+        deployer_manifest:
+          type: object
+          oneOf:
+            - type: object
+              properties:
+                api:
+                  type: string
+                  enum: [v1]
+                artifact_type:
+                  type: string
+                  enum: [kustomize, helm]
+                artifact_source:
+                  type: string
+                  enum: [git]
+                common:
+                  type: object
+                  properties:
+                    url:
+                      type: string
+                    service_endpoint:
+                      type: string
+                    revision:
+                      type: string
+                    repo_id:
+                      type: string
+                source_config:
+                  type: object
+                  properties:
+                    path:
+                      type: string
+                    chart:
+                      type: string
+                cluster_config:
+                  type: object
+                  properties:
+                    namespace:
+                      type: string
+                helm_values:
+                  type: object
+                  properties:
+                    value_files:
+                      type: array
+                      items:
+                        type: string
+                    parameters:
+                      type: array
+                      items:
+                        type: object
+                sync_policy:
+                  type: object
+                  properties:
+                    self_heal:
+                      type: boolean
+              required: [api, common, cluster_config, source_config, artifact_source, artifact_type]
+              additionalProperties: false
+            - type: object
+              properties:
+                api:
+                  type: string
+                  enum: [v1]
+                artifact_type:
+                  type: string
+                  enum: [kustomize]
+                artifact_source:
+                  type: string
+                  enum: [git]
+                common:
+                  type: object
+                  properties:
+                    url:
+                      type: string
+                    service_endpoint:
+                      type: string
+                    revision:
+                      type: string
+                    repo_id:
+                      type: string
+                source_config:
+                  type: object
+                  properties:
+                    path:
+                      type: string
+                    chart:
+                      type: string
+                    image:
+                      type: string
+                cluster_config:
+                  type: object
+                  properties:
+                    namespace:
+                      type: string
+              required: [api, common, cluster_config, source_config, artifact_source, artifact_type]
+              additionalProperties: false
+      required: [deployer, deployer_manifest]
+      
+    DeploymentConfigPageVo:
+      type: object
+      properties:
+        deploymentConfigs:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeploymentConfigVo'
+        total:
+          type: integer
+          format: int64
+          description: Total number of deployment configs
+    DeploymentConfigVo:
+      type: object
+      properties:
+        created_time:
+          type: string
+          format: date-time
+        updated_time:
+          type: string
+          format: date-time
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        component_id:
+          type: string
+        project_id:
+          type: string
+        deployment_manifest:
+          type: string
+    DeploymentConfigDTO:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        component_id:
+          type: string
+        project_id:
+          type: string
+        deployment_manifest:
+          type: string
+      required:
+        - name
+        - component_id
+        - project_id
+        - deployment_manifest
+    DeploymentConfigEntity:
+      type: object
+      properties:
+        id:
+          type: string
+        created_time:
+          type: string
+          format: date-time
+        updated_time:
+          type: string
+          format: date-time
+        name:
+          type: string
+        description:
+          type: string
+        component_id:
+          type: string
+        project_id:
+          type: string
+        deployment_manifest:
+          type: string
+paths:
+  '/v2/{project_id}/component/{component_id}/deployment-config':
+    get:
+      operationId: queryDeploymentConfigurationList
+      parameters:
+        - name: project_id
+          in: path
+          schema:
+            type: string
+          required: true
+          description: project id
+        - name: component_id
+          in: path
+          schema:
+            type: string
+          required: true
+          description: component id
+        - name: key_word
+          in: query
+          schema:
+            type: string
+          description: keyword search
+        - name: deployment_config_ids
+          in: query
+          schema:
+            type: string
+          description: get specific deployment configs
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            format: int32
+            default: 0
+          description: pagination start, the default value is 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            format: int32
+            default: 10
+          description: pagination end, the default value is 10
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/octet-stream':
+              schema:
+                $ref: '#/components/schemas/DeploymentConfigPageVo'
+      description: >
+        Get all deployment configurations of a microservice in CodeArts.
+        A deployment configuration defines how a microservice in CodeArts should be deployed,
+        including the deployment strategy (e.g., GitOps or ReleasePolicy), source git repository containing k8s deployment manifests (Helm chart or Kustomize).
+        It is used when deploying a microservice instance in CodeArts Release environment.
+      tags:
+        - deployment_config_controller
+    put:
+      operationId: createDeploymentConfiguration
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: project id
+        - name: component_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: component id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeploymentConfigDTO'
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/octet-stream':
+              schema:
+                $ref: '#/components/schemas/DeploymentConfigEntity'
+      description: >
+        Create a new deployment configuration for a microservice in CodeArts.
+        The configuration defines how the microservice should be deployed, including its deployment engine (e.g., GitOps), the source Git repository containing Kubernetes manifests (e.g., Helm or Kustomize), target namespace, and other deployment metadata.
+        This configuration is later referenced when deploying the microservice instance to a specific CodeArts Release environment.
+      tags:
+        - deployment_config_controller
+  '/v2/{project_id}/component/{component_id}/deployment-config/{deployment_config_id}':
+    delete:
+      operationId: deleteDeploymentConfiguration
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: project id
+        - name: component_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: component id
+        - name: deployment_config_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: deployment config id
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/octet-stream':
+              schema:
+                $ref: '#/components/schemas/DeploymentConfigVo'
+      description: Delete a deployment configuration of a microservice in CodeArts.
+      tags:
+        - deployment_config_controller
+    put:
+      operationId: updateDeploymentConfiguration
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: project id
+        - name: component_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: component id
+        - name: deployment_config_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: deployment config id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeploymentConfigDTO'
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/octet-stream':
+              schema:
+                $ref: '#/components/schemas/DeploymentConfigEntity'
+      description: >
+        Update an existing deployment configuration in CodeArts.
+        Modify Deployment Engine (e.g GitOps), source git repository, artifact type (Helm or Kustomize), target namespace, Helm parameters.
+      tags:
+        - deployment_config_controller

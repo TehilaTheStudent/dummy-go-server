@@ -1,0 +1,458 @@
+openapi: 3.0.0
+info:
+  description: CloudReleaseServer v1.0
+  title: CloudReleaseServer
+  version: v1.0
+servers:
+  - url: https://cloudrelease-ext.ap-southeast-3.myhuaweicloud.com
+    description: Production server
+security:
+  - AuthToken: []
+paths:
+  '/v2/{project_id}/environment/categories':
+    get:
+      operationId: queryReleaseEnvironmentCategoryList
+      description: >
+        Get codearts release environment category list, containing types (DEVELOPMENT, TEST, PRODUCT, PRE_PRODUCTION) 
+        and id of each category
+      tags:
+        - environment-new-controller
+      parameters:
+        - name: project_id
+          in: path
+          description: Project ID
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{32}$'
+        - name: offset
+          in: query
+          description: Page start, default 0
+          schema:
+            type: integer
+            format: int32
+            default: 0
+        - name: limit
+          in: query
+          description: Page size, default 10
+          schema:
+            type: integer
+            format: int32
+            default: 10
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/octet-stream':
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EnvironmentCategoryVo'
+  '/v2/{project_id}/environments':
+    get:
+      operationId: queryReleaseEnvironmentList
+      description: >
+        Retrieve the list of CodeArts release environments.
+        An environment is a deployment target for microservice,
+        It is linked with infrastructure resource (CCE container engine cluster, K8S cluster, UCS host)
+      parameters:
+        - name: project_id
+          in: path
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{32}$'
+          required: true
+        - name: environment_category_id
+          in: query
+          description: Environment category ID
+          schema:
+            type: string
+        - name: key_word
+          in: query
+          description: Query keyword
+          schema:
+            type: string
+        - name: resource_id
+          in: query
+          description: Resource ID
+          schema:
+            type: string
+        - name: resource_type
+          in: query
+          description: Resource type
+          schema:
+            type: string
+        - name: offset
+          in: query
+          description: Page start, default 0
+          schema:
+            type: integer
+            format: int32
+            default: 0
+        - name: limit
+          in: query
+          description: Page size, default 10
+          schema:
+            type: integer
+            format: int32
+            default: 10
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/octet-stream':
+              schema:
+                $ref: '#/components/schemas/EnvironmentPageVo'
+      tags:
+        - environment-new-controller
+    put:
+      operationId: createReleaseEnvironment
+      description: >
+          Create new CodeArts release environment, the environment resource is infrastructure cluster, that can be of type CCE, K8S or UCS,
+          you give the resource details for an environment in the context object that is provided in the CreateEnvironment parameters, and each resource requires different fields to be filled in the context object and in the body object: 
+          for CCE resource type, that is huawei cloud Cloud Container Engine, 
+          1. list cce clusters to get a cce cluster id
+          2. fill  the cluster_id field in the body.context object,
+          3. fill empty string ( "" ) in the body.endpoint_id and body.endpoint_name
+          for k8s resource type, that is service endpoint of k8s cluster,
+          1.  list service endpoints, find service endpoint of type k8s and get its id, 
+          2. fill the body.context.endpoint_id and body.context.endpoint_name fields in the body.context object
+          3. fill the body.endpoint_id and body.endpoint_name fields in the body object as well, otherwise the k8s service endpoint wont be linked to the environment properly
+          after creation of the release environment you can deploy microservice instances to it  
+      parameters:
+        - name: project_id
+          in: path
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{32}$'
+          required: true
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/EnvironmentCreateDTO'
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/octet-stream':
+              schema:
+                $ref: '#/components/schemas/EnvironmentEntity'
+      tags:
+        - environment-new-controller
+  '/v2/{project_id}/environments/{env_id}':
+    post:
+      operationId: updateReleaseEnvironmentById
+      parameters:
+        - name: project_id
+          in: path
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{32}$'
+          required: true
+        - name: env_id
+          in: path
+          description: Environment ID
+          schema:
+            type: string
+          required: true
+      requestBody:
+        required: true
+        content:
+          'application/json':
+            schema:
+              $ref: '#/components/schemas/EnvironmentUpdateDTO'
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/octet-stream':
+              schema:
+                $ref: '#/components/schemas/EnvironmentVo'
+      description: Update CodeArts release environment information, such as description and infrastructure resource
+      tags:
+        - environment-new-controller
+    delete:
+      operationId: deleteReleaseEnvironmentById
+      parameters:
+        - name: project_id
+          in: path
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{32}$'
+          required: true
+        - name: env_id
+          in: path
+          description: Environment ID
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/octet-stream':
+              schema:
+                $ref: '#/components/schemas/EnvironmentVo'
+      summary: Delete CodeArts release environment, this deletes all microservice instances deployed in this environment as well
+      tags:
+        - environment-new-controller
+components:
+  securitySchemes:
+    AuthToken:
+      type: apiKey
+      name: x-auth-token
+      in: header
+      description: User authentication token required for API access
+  schemas:
+    EnvironmentCategoryVo:
+      type: object
+      properties:
+        id:
+          description: ID
+          type: string
+        name:
+          description: Environment level name
+          type: string
+        type:
+          description: Level type
+          type: string
+
+    EnvironmentCreateDTO:
+      type: object
+      description: Create environment request body
+      required:
+        - environment_category_id
+        - name
+        - resource_type
+        - user_type
+        - context
+        - endpoint_id
+        - endpoint_name
+        - description
+      properties:
+        context:
+          $ref: '#/components/schemas/EnvironmentContext'
+        description:
+          type: string
+          description: Description
+          default: ""
+        endpoint_id:
+          type: string
+          description: k8s service endpoint id
+        endpoint_name:
+          type: string
+          description: k8s service endpoint name
+        environment_category_id:
+          type: string
+          description: Environment level
+        name:
+          type: string
+          description: Environment name
+        resource_type:
+          $ref: '#/components/schemas/ResourceTypeEnum'
+        user_type:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 1
+          default: 0
+          description: User type 0 - current user, 1 - other users
+
+    EnvironmentUpdateDTO:
+      type: object
+      description: Update environment request body
+      required:
+        - name
+      properties:
+        context:
+          $ref: '#/components/schemas/EnvironmentContext'
+        description:
+          type: string
+          description: Description
+        endpoint_id:
+          type: string
+          description: Extension point ID
+        endpoint_name:
+          type: string
+          description: Extension point name
+        name:
+          type: string
+          description: Environment name
+        user_type:
+          type: integer
+          format: int32
+          description: User type 0 - current user, 1 - other users
+
+    EnvironmentEntity:
+      type: object
+      properties:
+        categoryId:
+          type: string
+        componentId:
+          type: string
+        context:
+          $ref: '#/components/schemas/EnvironmentContext'
+        createTime:
+          type: string
+          format: date-time
+        createUser:
+          type: string
+        deleted:
+          type: boolean
+        deploymentStrategyId:
+          type: string
+        description:
+          type: string
+        domainId:
+          type: string
+        endpointId:
+          type: string
+          pattern: '^[a-f0-9]{32}$'
+        endpointName:
+          type: string
+        id:
+          type: string
+        name:
+          type: string
+        projectId:
+          type: string
+        region:
+          type: string
+        resourceType:
+          type: string
+          enum: [CCE, K8S, UCS]
+        updateTime:
+          type: string
+          format: date-time
+        updateUser:
+          type: string
+        version:
+          type: string
+
+    EnvironmentPageVo:
+      type: object
+      properties:
+        environments:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnvironmentVo'
+        total:
+          type: integer
+          format: int64
+          description: 总数
+
+    EnvironmentResource:
+      type: object
+      properties:
+        name:
+          type: string
+        value:
+          type: string
+          
+    ResourceTypeEnum:
+      type: string
+      enum: [CCE, K8S, UCS]
+      description: Type of resource
+
+    EnvironmentVo:
+      type: object
+      properties:
+        category_id:
+          type: string
+          description: Environment level
+        category_name:
+          type: string
+          description: Environment level name
+        category_type:
+          type: string
+          description: Environment level type
+        componentId:
+          type: string
+          description: Microservice ID
+        context:
+          type: object
+          description: Resource information
+          additionalProperties:
+            type: string
+            description: Resource information
+        created_time:
+          type: integer
+          format: int64
+          description: Creation time
+        created_user:
+          type: string
+          description: Creator
+        deploy_strategy_id:
+          type: string
+          description: Deployment strategy ID
+        deploy_strategy_name:
+          type: string
+          description: Deployment strategy name
+        description:
+          type: string
+          description: Description
+        endpoint_id:
+          type: string
+          description: Extension point ID
+        endpoint_name:
+          type: string
+          description: Extension point name
+        id:
+          type: string
+          description: ID
+        name:
+          type: string
+          description: Environment name
+        project_id:
+          type: string
+          description: Project ID
+        region:
+          type: string
+          description: Region
+        resource_type:
+          type: string
+          enum: [CCE, K8S, UCS]
+          description: Resource type, fill CCE for CCE cluster, K8S for k8s cluster, UCS for ucs fleet
+        variable_version:
+          type: string
+          description: Variable version
+    EnvironmentContext:
+      type: object
+      properties:
+        cluster_id:
+          type: string
+          default: ""
+          description: Cluster ID, in case resource type is CCE, use this info from list clusters and get a cce cluster id, or leave empty if resource type is K8S or UCS
+        endpoint_id:
+          type: string
+          default: ""
+          description: Endpoint ID, in case resource type is K8S, use this info from list endpoints and get a k8s endpoint id, or leave empty if resource type is CCE or UCS
+        endpoint_name:
+          type: string
+          default: ""
+          description: Endpoint name, in case resource type is K8S, use this info from list endpoints and get a k8s endpoint name, or leave empty if resource type is CCE or UCS
+        region:
+          type: string
+          default: "ap-southeast-3"
+          description: Region, same region as project
+        region_name:
+          type: string
+          default: "AP-singapure"
+          description: Region name, use if resource type is CCE
+        user_type:
+          type: string
+          default: "current_user"
+          enum: [current_user]
+          description: User type, current_user or other_users  
+      required:
+        - user_type
+        - region
+        - endpoint_name
+        - cluster_id
+        - endpoint_id

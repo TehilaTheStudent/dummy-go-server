@@ -1,0 +1,455 @@
+openapi: 3.0.0
+info:
+  description: devcloud pipeline api
+  version: v1
+  title: CloudPipeline
+servers:
+  - url: https://cloudpipeline-ext.ap-southeast-3.myhuaweicloud.com
+    description: Production server
+tags:
+  - name: Pipeline Runs
+security:
+  - AuthToken: []
+paths:
+  /v5/{project_id}/api/pipelines/{pipeline_id}/pipeline-runs/detail:
+    get:
+      summary: Get pipeline status and execution details
+      description: Only the data with execution records is returned.
+      operationId: GetPipelineRunDetail
+      tags:
+        - Pipeline Runs
+      parameters:
+        - $ref: '#/components/parameters/Path-Project-Id'
+        - $ref: '#/components/parameters/Path-Pipeline-Id'
+        - name: pipeline_run_id
+          in: query
+          required: false
+          schema:
+            type: string
+            minLength: 32
+            maxLength: 32
+          description: Pipeline run ID. 32 characters, digits and letters.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipelineRunDetail'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found        
+components:
+  parameters:
+    Path-Project-Id:
+      name: project_id
+      in: path
+      required: true
+      description: Project ID
+      schema:
+        type: string
+    Path-Pipeline-Id:
+      name: pipeline_id
+      in: path
+      required: true
+      description: Pipeline ID
+      schema:
+        type: string
+  securitySchemes:
+    AuthToken:
+      type: apiKey
+      name: x-auth-token
+      in: header
+      description: User authentication token required for API access
+  schemas:
+    PipelineRunDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Pipeline run ID (32 characters).
+        pipeline_id:
+          type: string
+          description: Pipeline ID (32 characters).
+        manifest_version:
+          type: string
+          description: Pipeline version. Default is 3.0.
+        name:
+          type: string
+          description: Pipeline name.
+        description:
+          type: string
+          nullable: true
+          description: Pipeline running description (up to 1024 characters).
+        is_publish:
+          type: boolean
+          description: Whether the pipeline is a change-triggered pipeline.
+        executor_id:
+          type: string
+          description: Executor ID (32 characters).
+        executor_name:
+          type: string
+          description: Executor name.
+        status:
+          type: string
+          description: Pipeline run status (COMPLETED, RUNNING, FAILED, etc.).
+        trigger_type:
+          type: string
+          description: Trigger type (Manual, Scheduler, Webhook, etc.).
+        run_number:
+          type: integer
+          description: Pipeline running sequence number.
+        start_time:
+          type: integer
+          format: int64
+          description: Start time (epoch ms).
+        end_time:
+          type: integer
+          format: int64
+          description: End time (epoch ms).
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/StageRun'
+          description: Stage running information.
+        domain_id:
+          type: string
+          description: Tenant ID (32 characters).
+        project_id:
+          type: string
+          description: Project ID (32 characters).
+        region:
+          type: string
+          description: Region.
+        component_id:
+          type: string
+          description: Microservice ID.
+        language:
+          type: string
+          description: Language (zh-cn, en-us).
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/RunPipelineSource'
+          description: Pipeline source information.
+        artifacts:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/PackageInfo'
+          description: Artifacts after running a pipeline.
+        subject_id:
+          type: string
+          description: Pipeline run ID.
+        group_id:
+          type: string
+          description: Group ID (32 characters).
+        group_name:
+          type: string
+          description: Group name.
+        detail_url:
+          type: string
+          description: Address of the details page.
+        current_system_time:
+          type: integer
+          format: int64
+          description: Current system time.
+    StageRun:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Stage ID (32 characters).
+        category:
+          type: string
+          nullable: true
+          description: Stage type.
+        name:
+          type: string
+          description: Stage name.
+        identifier:
+          type: string
+          description: Unique identifier of a stage.
+        run_always:
+          type: boolean
+          description: Whether to always run.
+        parallel:
+          type: string
+          nullable: true
+          description: Whether to execute jobs in parallel.
+        is_select:
+          type: boolean
+          description: Whether to select.
+        sequence:
+          type: integer
+          description: Serial number.
+        depends_on:
+          type: array
+          items:
+            type: string
+          description: Dependency.
+        condition:
+          type: string
+          nullable: true
+          description: Running conditions.
+        status:
+          type: string
+          description: Status.
+        start_time:
+          type: integer
+          format: int64
+          description: Start time.
+        end_time:
+          type: integer
+          format: int64
+          description: End time.
+        pre:
+          type: array
+          items:
+            $ref: '#/components/schemas/StepRun'
+          description: Stage entry.
+        post:
+          type: array
+          items:
+            $ref: '#/components/schemas/StepRun'
+          description: Stage exit.
+        jobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobRun'
+          description: Jobs.
+    JobRun:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Job ID.
+        category:
+          type: string
+          nullable: true
+          description: Job type.
+        sequence:
+          type: integer
+          description: Serial number.
+        async:
+          type: string
+          nullable: true
+          description: Whether it is asynchronous.
+        name:
+          type: string
+          description: Job name.
+        identifier:
+          type: string
+          description: Unique identifier of a job.
+        depends_on:
+          type: array
+          items:
+            type: string
+          description: Dependency.
+        condition:
+          type: string
+          nullable: true
+          description: Running conditions.
+        resource:
+          type: string
+          nullable: true
+          description: Execution resources.
+        is_select:
+          type: boolean
+          description: Whether the parameter is selected.
+        timeout:
+          type: string
+          description: Job timeout settings.
+        last_dispatch_id:
+          type: string
+          nullable: true
+          description: ID of the job delivered last time.
+        status:
+          type: string
+          description: Status.
+        message:
+          type: string
+          description: Error message.
+        start_time:
+          type: integer
+          format: int64
+          description: Start time.
+        end_time:
+          type: integer
+          format: int64
+          description: End time.
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/StepRun'
+          description: Steps.
+        exec_id:
+          type: string
+          description: Job execution ID.
+    StepRun:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Step name.
+        task:
+          type: string
+          description: Step extension name.
+        business_type:
+          type: string
+          description: Extension type.
+        inputs:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/StepInput'
+          description: Enter a parameter.
+        sequence:
+          type: integer
+          description: Serial number.
+        official_task_version:
+          type: string
+          description: Official extension version.
+        identifier:
+          type: string
+          description: Unique identifier.
+        multi_step_editable:
+          type: integer
+          description: Whether the parameter is editable.
+        id:
+          type: string
+          description: Step ID (32 characters).
+        endpoint_ids:
+          type: array
+          items:
+            type: string
+          nullable: true
+          description: Endpoint ID list.
+        last_dispatch_id:
+          type: string
+          description: ID of the last delivery job.
+        status:
+          type: string
+          description: Status.
+        message:
+          type: string
+          description: Error message.
+        start_time:
+          type: integer
+          format: int64
+          description: Start time.
+        end_time:
+          type: integer
+          format: int64
+          description: End time.
+    StepInput:
+      type: object
+      properties:
+        key:
+          type: string
+          description: Enter the parameter name.
+        value:
+          description: Enter the parameter value.
+    RunPipelineSource:
+      type: object
+      properties:
+        type:
+          type: string
+          description: Source type (currently only code is supported).
+        params:
+          $ref: '#/components/schemas/SourceParams'
+          description: Code source parameters.
+    SourceParams:
+      type: object
+      properties:
+        git_type:
+          type: string
+          description: Code repository type (CodeHub, Gitee, GitHub, GitCode, GitLab).
+        git_url:
+          type: string
+          description: HTTPS address of the code repository.
+        ssh_git_url:
+          type: string
+          description: SSH address of the code repository.
+        web_url:
+          type: string
+          description: Address of the code repository page.
+        repo_name:
+          type: string
+          description: Code repository name.
+        default_branch:
+          type: string
+          description: Default branch.
+        endpoint_id:
+          type: string
+          description: Endpoint ID.
+        codehub_id:
+          type: string
+          description: Repo code repository ID.
+        alias:
+          type: string
+          description: Code repository alias.
+        build_params:
+          $ref: '#/components/schemas/BuildParams'
+          description: Build parameters.
+    BuildParams:
+      type: object
+      properties:
+        action:
+          type: string
+          description: Merge request event type (open, reopen, update, merge).
+        build_type:
+          type: string
+          description: Triggered by branch or by tag.
+        commit_id:
+          type: string
+          description: Code repository commit ID.
+        event_type:
+          type: string
+          description: Event type (Manual, Scheduler, Webhook, etc.).
+        merge_id:
+          type: string
+          description: Merge request ID.
+        message:
+          type: string
+          description: Code commit message.
+        source_branch:
+          type: string
+          description: Source branch.
+        tag:
+          type: string
+          description: Tag.
+        target_branch:
+          type: string
+          description: Target branch.
+        codehub_id:
+          type: string
+          description: Repo code repository ID.
+        source_codehub_id:
+          type: string
+          description: ID of the source Repo code repository.
+        source_codehub_url:
+          type: string
+          description: Address of the source Repo code repository.
+        source_codehub_http_url:
+          type: string
+          description: HTTP address of the source Repo code repository.
+    PackageInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Artifact name.
+        packageType:
+          type: string
+          description: Artifact type.
+        version:
+          type: string
+          description: Artifact version number.
+        downloadUrl:
+          type: string
+          description: Artifact download address.
+

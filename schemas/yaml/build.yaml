@@ -1,0 +1,590 @@
+openapi: 3.0.0
+info:
+  description: devcloud build api
+  version: v1
+  title: CloudBuild
+servers:
+  - url: https://cloudbuild-ext.ap-southeast-3.myhuaweicloud.com
+    description: Production server
+tags:
+  - name: Build Tasks
+security:
+  - AuthToken: []
+paths:
+  /v3/jobs/create:
+    post:
+      operationId: createBuildTask
+      description: >
+        Create a new build task in CodeArts Build. 
+        This defines how to build an artifact such as a Docker image or compiled code, 
+        The created build task can be used in a pipeline through the official_devcloud_cloudBuild plugin. 
+      tags:
+        - BuildTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBuildTaskRequest'
+      responses:
+        '200':
+          description: Build task created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id:
+                    type: string
+                    description: The ID of the created job
+        '400':
+          description: Invalid request
+        '401':
+          description: Authentication error
+        '403':
+          description: Forbidden
+        '500':
+          description: Server error
+  /v3/{project_id}/jobs:
+    get:
+      tags:
+        - Build Tasks
+      description: >
+        Query CodeArts Build Tasks in a project. Build tasks define how to build artifacts 
+        such as Docker images or compiled code, and may include steps to push them to a registry. 
+      operationId: queryCodeArtsBuildTasks
+      parameters:
+        - $ref: '#/components/parameters/Path-Project-Id'
+        - name: page_index
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Page number, indicating that the query starts from this page. The value of page_index is greater than or equal to 0.
+        - name: page_size
+          in: query
+          required: true
+          schema:
+            default: 10
+            type: integer
+            maximum: 100
+          description: Number of items displayed on each page. The value of page_size is less than or equal to 100.
+      security:
+        - AuthToken: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobVO'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error_code:
+                    type: string
+                  error_msg:
+                    type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error_code:
+                    type: string
+                  error_msg:
+                    type: string
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error_code:
+                    type: string
+                  error_msg:
+                    type: string
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error_code:
+                    type: string
+                  error_msg:
+                    type: string
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error_code:
+                    type: string
+                  error_msg:
+                    type: string
+  /v3/jobs/{job_id}/query:
+    get:
+      tags:
+        - Build Tasks
+      description: >
+        Retrieve the details of a specific CodeArts Build Task. 
+        This includes its configured steps, environment, and actions, 
+        allowing you to understand exactly how the task is set up to build and push artifacts.
+      operationId: queryCodeArtsBuildTaskDetails
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Build task ID. The task ID contains the 32 digits and letters at the end of the browser URL when the build task is edited.
+        - name: get_all_params
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+            enum: [true, false]
+          description: Specify whether returned parameters are complete.
+      security:
+        - AuthToken: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetBuildTaskDetailsResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  parameters:
+    Path-Project-Id:
+      name: project_id
+      in: path
+      required: true
+      description: Project ID
+      schema:
+        type: string
+  securitySchemes:
+    AuthToken:
+      type: apiKey
+      name: x-auth-token
+      in: header
+      description: User authentication token required for API access
+  schemas:
+    CreateBuildTaskRequest:
+        type: object
+        required:
+          - arch
+          - project_id
+          - job_name
+          - steps
+          - host_type
+        properties:
+          arch:
+            type: string
+            description: Architecture (e.g., x86-64, arm).
+          project_id:
+            type: string
+            description: ID of the project.
+          job_name:
+            type: string
+            description: Name of the build task.
+          source_code:
+            type: string
+            description: Source code (e.g., codeci).
+          auto_update_sub_module:
+            type: string
+            description: Whether to auto update submodules.
+          flavor:
+            type: string
+            description: Build execution flavor.
+          build_config_type:
+            type: string
+            description: Type of build configuration.
+          host_type:
+            type: string
+            description: Type of host. should be 'devcloud'
+          parameters:
+            type: array
+            items:
+              $ref: '#/components/schemas/BuildParameter'
+          scms:
+            type: array
+            items:
+              $ref: '#/components/schemas/BuildScm'
+          steps:
+            type: array
+            items:
+              $ref: '#/components/schemas/BuildStep'
+    BuildParameter:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Parameter class name (e.g., hudson.model.StringParameterDefinition).
+        params:
+          type: array
+          items:
+            $ref: '#/components/schemas/BuildParameterParam'
+    BuildParameterParam:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Parameter name.
+        value:
+          type: string
+          description: Parameter value.
+    BuildScm:
+      type: object
+      properties:
+        type:
+          type: string
+          description: SCM type (e.g., git).
+        url:
+          type: string
+          description: Repository URL.
+        branch:
+          type: string
+          description: Branch name.
+    BuildStep:
+      type: object
+      properties:
+        module_id:
+          type: string
+          example: "devcloud2018.codeci_action_20004.action"
+        name:
+          type: string
+          example: "Build Image and Push to SWR"
+        version:
+          type: string
+          example: "20250304.2"
+        enable:
+          type: boolean
+          example: true
+        properties:
+          type: object
+          properties:
+            image:
+              type: string
+              example: "docker18.03"
+            registryUrl:
+              type: object
+              properties:
+                displayName:
+                  type: string
+                  example: "SWR"
+                value:
+                  type: string
+                  example: "100.95.181.176:5300"
+            endpointUuid:
+              type: object
+              description: "Optional object, can be empty or contain endpoint identifiers"
+            authUser:
+              type: object
+              properties:
+                displayName:
+                  type: string
+                  example: "Current"
+                value:
+                  type: string
+                  example: "current"
+            iamEndPoint:
+              type: object
+              description: "Optional object, can be empty or contain IAM endpoint info"
+            selectRegion:
+              type: string
+              example: "cn-north-7"
+            organization:
+              type: string
+              example: "fuxi-ci"
+            imageName:
+              type: string
+              example: "demo"
+            tag:
+              type: string
+              example: "v1.1"
+            contextPath:
+              type: string
+              example: "."
+            dockerFilePath:
+              type: string
+              example: "./Dockerfile"
+            setMetaData:
+              type: string
+              example: "no"
+            preCondition:
+              type: string
+              example: "SUCCESS"
+      required:
+        - module_id
+        - name
+        - version
+        - enable
+        - properties           
+    GetBuildTaskDetailsResponse:
+      type: object
+      properties:
+        result:
+          $ref: '#/components/schemas/CreateBuildJobRequestBody'
+        error:
+          type: string
+          description: Returned error message.
+        status:
+          type: string
+          description: Returned status information.
+    ErrorResponse:
+      type: object
+      properties:
+        error_code:
+          type: string
+        error_msg:
+          type: string
+    CreateBuildJobRequestBody:
+      type: object
+      required:
+        - arch
+        - project_id
+        - job_name
+        - job_id
+        - parameters
+        - host_type
+        - scms
+        - steps
+      properties:
+        arch:
+          type: string
+          description: Architecture.
+        project_id:
+          type: string
+          description: ID of the project to which the build task belongs.
+        job_name:
+          type: string
+          description: Task name.
+        job_id:
+          type: string
+          description: Build task ID.
+        auto_update_sub_module:
+          type: string
+          description: Whether to automatically update submodules.
+        flavor:
+          type: string
+          description: Executor flavors.
+        parameters:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateBuildJobParameter'
+          description: Parameters for build execution.
+        scms:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateBuildJobScm'
+          description: SCMs of build execution.
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateBuildJobSteps'
+          description: Build actions.
+        host_type:
+          type: string
+          description: Type of host. should be 'devcloud'
+        build_config_type:
+          type: string
+          description: Build configuration type.
+    CreateBuildJobParameter:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Parameter definition name. The default value is hudson.model.StringParameterDefinition.
+        params:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateBuildJobParameterParam'
+          description: Subparameters of build execution parameters.
+    CreateBuildJobParameterParam:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Parameter field name.
+        value:
+          type: string
+          description: Parameter field value.
+        limits:
+          type: array
+          items:
+            $ref: '#/components/schemas/LimitsParam'
+          description: Restrictions on enumeration parameters.
+    LimitsParam:
+      type: object
+      properties:
+        disable:
+          type: string
+          description: Whether the configuration takes effect. The default value is 0, indicating that the configuration takes effect.
+        display_name:
+          type: string
+          description: Parameter display name.
+        name:
+          type: string
+          description: Parameter name.
+    CreateBuildJobScm:
+      type: object
+      properties:
+        branch:
+          type: string
+          description: Branch.
+        url:
+          type: string
+          description: Code repository address.
+        repo_id:
+          type: string
+          description: Repo ID.
+        web_url:
+          type: string
+          description: HTTP address of the code repository.
+        scm_type:
+          type: string
+          description: Repository type, such as Repo and GitHub.
+        is_auto_build:
+          type: boolean
+          description: Whether to enable auto build.
+        build_type:
+          type: string
+          description: Build type.
+        depth:
+          type: string
+          description: Clone depth.
+        end_point_id:
+          type: string
+          description: endpointId
+        source:
+          type: string
+          description: source
+    CreateBuildJobSteps:
+      type: object
+      properties:
+        properties:
+          type: object
+          additionalProperties:
+            type: object
+          description: Build action.
+        module_id:
+          type: string
+          description: Build module ID.
+        name:
+          type: string
+          description: Build module name.
+        version:
+          type: string
+          description: Build version.
+        enable:
+          type: boolean
+          description: Enable or not.
+    JobVO:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total number of tasks.
+        jobs:
+          type: array
+          description: Task list.
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Task ID.
+              job_name:
+                type: string
+                description: Task name.
+              job_creator:
+                type: string
+                description: Job creator.
+              user_name:
+                type: string
+                description: Username.
+              last_build_time:
+                type: number
+                description: Time of the last execution.
+              health_score:
+                type: integer
+                description: Health score.
+              source_code:
+                type: string
+                description: Code source.
+              last_build_status:
+                type: string
+                description: The latest build status.
+              is_finished:
+                type: boolean
+                description: Whether the task is complete.
+              disabled:
+                type: boolean
+                description: Whether the task is disabled.
+              favorite:
+                type: boolean
+                description: Whether the task is favorited.
+              is_modify:
+                type: boolean
+                description: Whether the role has permission for modifying the task.
+              is_delete:
+                type: boolean
+                description: Whether the role has permission for deleting the task.
+              is_execute:
+                type: boolean
+                description: Whether the role has permission for running the task.
+              is_copy:
+                type: boolean
+                description: Whether the role has permission for cloning the task.
+              is_forbidden:
+                type: boolean
+                description: Whether the role has permission for disabling the task.
+              is_view:
+                type: boolean
+                description: Whether the role has permission for viewing the task.

@@ -1,0 +1,220 @@
+openapi: 3.0.0
+info:
+  description: CloudReleaseServer v1.0
+  title: CloudReleaseServer
+  version: v1.0
+servers:
+  - url: https://cloudrelease-ext.ap-southeast-3.myhuaweicloud.com
+    description: release server
+security:
+  - AuthToken: []
+paths:
+  '/v2/{project_id}/environment/{env_id}/runtime/{runtime_id}':
+    delete:
+      operationId: deleteGitopsRuntime
+      parameters:
+        - description: project id
+          in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+        - description: env id
+          in: path
+          name: env_id
+          required: true
+          schema:
+            type: string
+        - description: runtime id
+          in: path
+          name: runtime_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/RuntimeVo'
+      description: >
+        Delete Gitops Runtime installed on release environment in CodeArts
+        after deletion copy the deletion command from CodeArts platform UI and run it on your k8s cluster or cce cluster to uninstall the Gitops Runtime
+      tags:
+        - runtime-controller
+  '/v2/{project_id}/environment/{env_id}/runtime':
+    get:
+      operationId: GetGitopsRuntimeByEnvironmentResourceId
+      parameters:
+        - description: project id
+          in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+        - description: env id
+          in: path
+          name: env_id
+          required: true
+          schema:
+            type: string
+        - description: filter resource type
+          in: query
+          name: resource_type
+          required: true
+          schema:
+            type: string
+            enum:
+              - CCE
+              - K8S
+              - UCS
+        - description: filter resource id
+          in: query
+          name: resource_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/RuntimeVo'
+      description: >
+        Get Gitops Runtime installed on specified resource ( resource is k8s cluster or cce cluster) in CodeArts
+        use this when you want to check whether the GitOps Runtime is installed on a k8s cluster or cce cluster that is a resource of a release environment in CodeArts.
+        The GitOps Runtime runs on your Kubernetes (or CCE) cluster and acts as the deployment engine for microservice instances.
+        It continuously compares the desired state of each microservice instance—defined by its deployment configuration—with the actual state in the cluster,
+        and automatically applies changes to keep them in sync.
+      tags:
+        - runtime-controller
+    put:
+      operationId: createGitopsRuntime
+      parameters:
+        - description: project id
+          in: path
+          name: project_id
+          required: true
+          schema:
+            type: string
+        - description: env id
+          in: path
+          name: env_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuntimeCreateDTO'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/RuntimeVo'
+      description: >
+        Creating a Gitops Runtime on specified resource ( resource is k8s cluster or cce cluster),
+        after creation, obtain installation command from CodeArts platform UI and install the Gitops Runtime on your k8s cluster or cce cluster
+        after installation, you can deploy microservice instances on the release environment
+        and the Gitops Runtime will automatically apply changes to the cluster
+      tags:
+        - runtime-controller
+components:
+  securitySchemes:
+    AuthToken:
+      type: apiKey
+      name: x-auth-token
+      in: header
+  schemas:
+    RuntimeVo:
+      type: object
+      properties:
+        id:
+          type: string
+        values:
+          type: object
+        status:
+          type: string
+          enum:
+            - HEALTHY
+            - PENDING
+            - IDLE
+            - OFFLINE
+        version:
+          type: string
+        latestVersion:
+          type: string
+        chartUrl:
+          type: string
+
+    RuntimeCreateDTO:
+      type: object
+      properties:
+        resource_id:
+          type: string
+        resource_type:
+          type: string
+          enum:
+            - CCE
+            - K8S
+    
+    RuntimeUpdateDTO:
+      type: object
+      properties:
+        values:
+          type: object
+    
+    RuntimeReportDTO:
+      type: object
+      properties:
+        runtime_version:
+          type: string
+    
+    WhiteListRepoVO:
+      type: object
+      properties:
+        type:
+          type: string
+        enable:
+          type: boolean
+    
+    RuntimeLogsCreateDTO:
+      type: object
+      properties:
+        resource:
+          description: resource
+          type: object
+        scope_logs:
+          description: scopeLogs
+          type: object
+    
+    RuntimeLogsVo:
+      type: object
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        runtimeId:
+          type: string
+        reportingComponent:
+          type: string
+        logTime:
+          format: int64
+          type: integer
+        logContent:
+          type: string
+    
+    RuntimeLogsPageVO:
+      type: object
+      properties:
+        runtimeLogs:
+          type: array
+          items:
+            $ref: '#/components/schemas/RuntimeLogsVo'

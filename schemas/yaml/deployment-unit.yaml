@@ -1,0 +1,347 @@
+openapi: 3.0.0
+info:
+  description: CloudReleaseServer v1.0
+  title: CloudReleaseServer
+  version: v1.0
+servers:
+  - url: https://cloudrelease-ext.ap-southeast-3.myhuaweicloud.com
+    description: Production server
+security:
+  - AuthToken: []
+components:
+  securitySchemes:
+    AuthToken:
+      type: apiKey
+      name: x-auth-token
+      in: header
+      description: User authentication token required for API access
+  schemas:
+    DeploymentManifestOverride:
+      type: object
+      properties:
+        deployer_manifest:
+          type: object
+          oneOf:
+            - type: object
+              properties:
+                api:
+                  type: string
+                  enum: [v1]
+                artifact_type:
+                  type: string
+                  enum: [kustomize, helm]
+                artifact_source:
+                  type: string
+                  enum: [git]
+                common:
+                  type: object
+                  properties:
+                    url:
+                      type: string
+                    service_endpoint:
+                      type: string
+                    revision:
+                      type: string
+                    repo_id:
+                      type: string
+                source_config:
+                  type: object
+                  properties:
+                    path:
+                      type: string
+                    chart:
+                      type: string
+                cluster_config:
+                  type: object
+                  properties:
+                    namespace:
+                      type: string
+                helm_values:
+                  type: object
+                  properties:
+                    value_files:
+                      type: array
+                      items:
+                        type: string
+                    parameters:
+                      type: array
+                      items:
+                        type: object
+                    deleted_parameters:
+                      type: array
+                      items:
+                        type: string
+                sync_policy:
+                  type: object
+                  properties:
+                    self_heal:
+                      type: boolean
+              additionalProperties: false
+      
+    DeploymentUnitCreateDTO:
+      description: request body for creating a deployment unit
+      type: object
+      required: [environment_id, component_id, component_name, deployment_config_id, deployment_manifest]
+      properties:
+        environment_id:
+          description: environment_id
+          type: string
+        component_id:
+          description: componentId
+          type: string
+        component_name:
+          description: componentName
+          type: string
+        deployment_config_id:
+          description: deployment_config_id
+          type: string
+        deployment_manifest:
+          description: deployment manifest override
+          type: string
+        description:
+          type: string
+          
+    DeploymentUnitVo:
+      type: object
+      properties:
+        id:
+          description: id
+          type: string
+        environmentId:
+          description: environmentId
+          type: string
+        componentId:
+          description: componentId
+          type: string
+        componentName:
+          description: componentName
+          type: string
+        ProjectId:
+          description: ProjectId
+          type: string
+        deploymentConfigId:
+          description: deploymentConfigId
+          type: string
+        createUser:
+          description: createUser
+          type: string
+        updateUser:
+          description: updateUser
+          type: string
+        createTime:
+          description: createTime
+          format: int64
+          type: integer
+        updateTime:
+          description: updateTime
+          format: int64
+          type: integer
+        deployment_manifest:
+          description: deployment manifest override
+          type: string
+        description:
+          type: string
+        version:
+          format: int64
+          description: version
+          type: integer
+          
+    DeploymentUnitEntity:
+      type: object
+      properties:
+        id:
+          type: string
+        environmentId:
+          type: string
+        componentId:
+          type: string
+        ProjectId:
+          type: string
+        deploymentConfigId:
+          type: string
+        createTime:
+          format: date-time
+          type: string
+        createUser:
+          type: string
+        updateTime:
+          format: date-time
+          type: string
+        updateUser:
+          type: string
+        deleted:
+          type: boolean
+        deployment_manifest:
+          description: deployment manifest override
+          type: string
+        description:
+          type: string
+        version:
+          format: int64
+          description: version
+          type: integer
+          
+    DeploymentUnitPageVo:
+      type: object
+      properties:
+        deploymentsUnits:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeploymentUnitVo'
+        total:
+          description: total number
+          format: int64
+          type: integer
+          x-required: true
+      required: ["deploymentsUnits", "total"]
+
+paths:
+  '/v2/{project_id}/environment/{env_id}/deployment-unit':
+    get:
+      operationId: queryMicroserviceInstanceListByEnvironment
+      description: >
+        Retrieve the list of Microservice Instances deployed in a specific Release Environment in CodeArts.
+        A Microservice Instance represents the deployment of a microservice in a particular release environment. 
+        It references target release environment, the microservice being deployed, and the deployment configuration that defines how the deployment is performed.
+        It may also include an override of values from the deployment configuration, to allow environment-specific customization.
+      tags:
+        - deployment-unit-controller
+      parameters:
+        - name: project_id
+          in: path
+          description: project id
+          required: true
+          schema:
+            type: string
+        - name: env_id
+          in: path
+          description: env id
+          required: true
+          schema:
+            type: string
+        - name: offset
+          in: query
+          description: offset0
+          schema:
+            type: integer
+            format: int32
+            default: 0
+        - name: limit
+          in: query
+          description: limit10
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeploymentUnitPageVo'
+    put:
+      operationId: createMicroserviceInstanceInEnvironment
+      description: >
+        Creates a Microservice Instance by deploying the microservice to a release environment in CodeArts using the selected deployment configuration,
+        supports overriding configuration values as needed. this operation will triggers creation of all associated Kubernetes resources defined by the deployment configuration in the environment.
+      tags:
+        - deployment-unit-controller
+      parameters:
+        - name: project_id
+          in: path
+          description: project id
+          required: true
+          schema:
+            type: string
+        - name: env_id
+          in: path
+          description: env id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeploymentUnitCreateDTO'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/DeploymentUnitEntity'
+  '/v2/{project_id}/environment/{env_id}/deployment-unit/{unit_id}':
+    put:
+      operationId: updateMicroserviceInstanceInEnvironment
+      description: >
+        Updates an existing Microservice Instance deployed in a release environment in CodeArts,
+        modify the deployment configuration or override values as needed.
+      tags:
+        - deployment-unit-controller
+      parameters:
+        - name: project_id
+          in: path
+          description: project id
+          required: true
+          schema:
+            type: string
+        - name: env_id
+          in: path
+          description: env id
+          required: true
+          schema:
+            type: string
+        - name: unit_id
+          in: path
+          description: deployment unit id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeploymentUnitCreateDTO'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                $ref: '#/components/schemas/DeploymentUnitVo'
+    delete:
+      operationId: deleteMicroserviceInstanceById
+      description: >
+        Delete a microservice instance deployed in a release environment in CodeArts
+        This operation removes the microservice instance from the release environment and triggers the deletion of all associated Kubernetes resources defined by the deployment configuration.
+      tags:
+        - deployment-unit-controller
+      parameters:
+        - name: project_id
+          in: path
+          description: project id
+          required: true
+          schema:
+            type: string
+        - name: env_id
+          in: path
+          description: env id
+          required: true
+          schema:
+            type: string
+        - name: unit_id
+          in: path
+          description: deployment unit id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string

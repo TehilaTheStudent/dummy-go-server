@@ -1,0 +1,419 @@
+openapi: 3.0.0
+info:
+  description: codearts deploy api
+  version: v1
+  title: CloudDeploy
+servers:
+  - url: https://codearts-deploy.ap-southeast-3.myhuaweicloud.com
+    description: Production server
+tags:
+  - name: Deploy Tasks
+security:
+  - AuthToken: []
+paths:
+  /v1/applications/list:
+    post:
+      tags:
+        - Deploy Tasks
+      description: >
+        Query the list of Deploy Applications in the CodeArts Deploy module.
+        A Deploy Application defines a series of deployment actions, such as deploying to Kubernetes clusters or host machines.
+        It can be used to deploy a service or site written in any programming language.
+        These applications can be reused in CodeArts pipelines via the official plugin `official_devcloud_deploy`.
+      operationId: listDeployApplications
+      security:
+        - AuthToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationListRequest'
+      responses:
+        '200':
+          description: OK, The request is successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationListResponse'
+      parameters: []
+
+  /v1/applications/{app_id}/info:
+    get:
+      tags:
+        - Deploy Tasks
+      description: >
+        Retrieve the details of a specific Deploy Application in the CodeArts Deploy module.
+        This provides the full configuration of the application, including the sequence of deployment actions 
+        it is set up to execute (e.g., deploy to Kubernetes or host). 
+        Use this to inspect how a deploy application is structured before using it in a pipeline.
+      operationId: getDeployApplicationDetails
+      security:
+        - AuthToken: []
+      parameters:
+        - name: app_id
+          in: path
+          required: true  
+          description: Application ID (32 characters, letters and digits)
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK, The request is successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationDetailResponse'
+
+components:
+  parameters:
+    Path-Project-Id:
+      name: project_id
+      in: path
+      required: true
+      description: Project ID
+      schema:
+        type: string
+  securitySchemes:
+    AuthToken:
+      type: apiKey
+      name: x-auth-token
+      in: header
+      description: User authentication token required for API access
+  schemas:
+    ApplicationListRequest:
+      type: object
+      required:
+        - project_id
+        - page
+        - size
+      properties:
+        project_id:
+          type: string
+          description: Project ID. 32 characters, letters and digits.
+        page:
+          default: 1
+          type: integer
+          description: Page number, 1-99999.
+        size:
+          default: 100
+          type: integer
+          description: Items per page, 1-100.
+        sort_name:
+          default: ""
+          type: string
+          description: Sort field name (name, startTime).
+        sort_by:
+          default: ""
+          type: string
+          description: Sorting sequence (ASC, asc, DESC, desc).
+        states:
+          type: array
+          default: []
+          items:
+            type: string
+          description: Application status list (abort, failed, not_started, pending, running, succeeded, timeout, not_executed).
+        group_id:
+          default: ""
+          type: string
+          description: Application group ID or 'no_grouped'.
+
+    ApplicationListResponse:
+      type: object
+      properties:
+        total_num:
+          type: integer
+          description: Total number of applications.
+        result:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppExecutionInfo'
+
+    AppExecutionInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Application ID (32 chars).
+        name:
+          type: string
+          description: Application name (3-128 chars).
+        duration:
+          type: string
+          description: Deployment time.
+        is_disable:
+          type: boolean
+          description: Whether the application is disabled.
+        project_id:
+          type: string
+          description: Project ID (32 chars).
+        project_name:
+          type: string
+          description: Project name (3-128 chars).
+        is_care:
+          type: boolean
+          description: Whether a user has favorited the application.
+        can_modify:
+          type: boolean
+        can_delete:
+          type: boolean
+        can_view:
+          type: boolean
+        can_execute:
+          type: boolean
+        can_copy:
+          type: boolean
+        can_manage:
+          type: boolean
+        can_create_env:
+          type: boolean
+        can_disable:
+          type: boolean
+        deploy_system:
+          type: string
+          description: Deployment mode (deployTemplate).
+        create_user_id:
+          type: string
+        create_tenant_id:
+          type: string
+        create_time:
+          type: string
+          description: Creation time (yyyy-MM-dd HH:mm:ss).
+        update_time:
+          type: string
+          description: Modification time (yyyy-MM-dd HH:mm:ss).
+        execution_time:
+          type: string
+          description: Last deployment time (yyyy-MM-dd HH:mm:ss).
+        end_time:
+          type: string
+          description: Deployment end time (yyyy-MM-dd HH:mm:ss).
+        execution_state:
+          type: string
+        release_id:
+          type: integer
+        executor_id:
+          type: string
+        executor_nick_name:
+          type: string
+        arrange_infos:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskBaseResponseBody'
+
+    TaskBaseResponseBody:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Deployment application ID (32 chars).
+        state:
+          type: string
+          description: Deployment task status (Available, Draft).
+        deploy_system:
+          type: string
+          description: Deployment mode (deployTemplate).
+
+    ApplicationDetailResponse:
+      type: object
+      properties:
+        result:
+          $ref: '#/components/schemas/AppDetailInfo'
+        status:
+          type: string
+          description: Request success or failure status (success, error).
+
+    AppDetailInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Application ID (32 chars).
+        name:
+          type: string
+          description: Application name (3-128 chars).
+        region:
+          type: string
+          description: Region to which the application belongs.
+        description:
+          type: string
+          description: Description (0-1024 chars).
+        is_disable:
+          type: boolean
+          description: Whether the application is disabled.
+        create_type:
+          type: string
+          description: Creation method (template).
+        project_id:
+          type: string
+          description: Project ID (32 chars).
+        project_name:
+          type: string
+          description: Project name (3-128 chars).
+        slave_cluster_id:
+          type: string
+          nullable: true
+          description: Slave cluster ID (1-32 chars) or null.
+        is_care:
+          type: boolean
+        can_modify:
+          type: boolean
+        can_delete:
+          type: boolean
+        can_view:
+          type: boolean
+        can_execute:
+          type: boolean
+        can_copy:
+          type: boolean
+        can_manage:
+          type: boolean
+        can_create_env:
+          type: boolean
+        can_disable:
+          type: boolean
+        owner_tenant_id:
+          type: string
+        create_user_id:
+          type: string
+        create_tenant_id:
+          type: string
+        create_time:
+          type: string
+          description: Creation time (yyyy-MM-dd HH:mm:ss).
+        update_time:
+          type: string
+          description: Modification time (yyyy-MM-dd HH:mm:ss).
+        permission_level:
+          type: string
+          description: Application authentication level (project, instance).
+        arrange_infos:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskV2Info'
+
+    TaskV2Info:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Deployment application ID (32 chars).
+        name:
+          type: string
+          description: Deployment task name (3-128 chars).
+        state:
+          type: string
+          description: Deployment task status (Available, Draft).
+        description:
+          type: string
+          description: Description (0-1024 chars).
+        owner:
+          type: string
+          description: Deployment application owner.
+        steps:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Step'
+          description: Deployment action steps.
+        project_id:
+          type: string
+        project_name:
+          type: string
+        deploy_system:
+          type: string
+        create_time:
+          type: string
+        update_time:
+          type: string
+        role_id:
+          type: integer
+        is_defaut_permission:
+          type: boolean
+        template_id:
+          type: string
+        nick_name:
+          type: string
+        owner_id:
+          type: string
+        tenant_id:
+          type: string
+        tenant_name:
+          type: string
+        slave_cluster_id:
+          type: string
+          nullable: true
+        is_care:
+          type: boolean
+        can_modify:
+          type: boolean
+        can_delete:
+          type: boolean
+        can_view:
+          type: boolean
+        can_execute:
+          type: boolean
+        can_copy:
+          type: boolean
+        can_manage:
+          type: boolean
+        can_create_env:
+          type: boolean
+        can_disable:
+          type: boolean
+        app_component_list:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppComponentDao'
+        release_id:
+          type: integer
+        app_id:
+          type: string
+        is_disable:
+          type: boolean
+
+    Step:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: true
+          description: Action ID.
+        name:
+          type: string
+          description: Action name.
+        params:
+          type: object
+          additionalProperties:
+            type: string
+          description: Action parameter.
+        enable:
+          type: boolean
+          description: Whether an action is enabled.
+
+    AppComponentDao:
+      type: object
+      properties:
+        task_id:
+          type: string
+          description: Deployment application ID (32 chars).
+        app_id:
+          type: string
+          description: AOM application ID (32 chars).
+        app_name:
+          type: string
+          description: AOM application name.
+        comp_id:
+          type: string
+          description: AOM application component ID (32 chars).
+        comp_name:
+          type: string
+          description: AOM application component name (0-128 chars).
+        domain_id:
+          type: string
+          description: Tenant ID (32 chars).
+        region:
+          type: string
+          description: Region information (1-256 chars).
+        state:
+          type: string
+          description: Whether the AOM application component takes effect (0= Initialized, 1= Success).

@@ -1,0 +1,82 @@
+openapi: 3.0.0
+info:
+  description: devcloud swr api
+  version: v1
+  title: CloudSWR
+servers:
+  - url: https://swr-api.ap-southeast-3.myhuaweicloud.com
+    description: swr server
+security:
+  - AuthToken: []
+paths:
+  /v2/manage/namespaces:
+    get:
+      summary: List Huawei Cloud SWR (Software Repository For Containers) organizations
+      operationId: listSwrOrganizations
+      parameters:
+        - name: filter
+          in: query
+          required: true
+          description: fill ''
+          schema:
+            type: string
+            default: ''
+      responses:
+        '200':
+          description: Successful response with a list of swr organizations.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListOrganizationsResponse'
+        '401':
+          description: Unauthorized — invalid or missing token.
+        '500':
+          description: Internal server error.
+components:
+  securitySchemes:
+    AuthToken:
+      type: apiKey
+      name: x-auth-token
+      in: header
+      description: User authentication token required for API access
+  schemas:
+    ListOrganizationsResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Error code
+            message:
+              type: string
+              description: Error Information
+        result:
+          type: object
+          properties:
+            organizations:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Swr organization ID.
+                    example: "namespace-1234"
+                  name:
+                    type: string
+                    description: Swr organization name.
+                    example: "my-organization"
+                  creator_name:
+                    type: string
+                    description: Swr organization creator name.
+                    example: "admin"
+                  auth:
+                    type: integer
+                    description: Swr organization permission level .
+                    example: 1
+        status:
+          type: string
+          description: Status value
+          example: "success"

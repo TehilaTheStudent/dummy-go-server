@@ -1,0 +1,356 @@
+openapi: 3.0.0
+info:
+  description: devcloud pipeline api
+  version: v1
+  title: CloudPipeline
+servers:
+  - url: https://cloudpipeline-ext.ap-southeast-3.myhuaweicloud.com
+tags:
+  - name: Microservice Management
+    description: ''
+security:
+  - AuthToken: []
+paths:
+  /v2/{cloudProjectId}/component/{componentId}/repo/update:
+    put:
+      tags:
+        - Microservice Management
+      description: Update CodeArts microservice code repository
+      operationId: UpdateMicroserviceRepo
+      parameters:
+        - name: cloudProjectId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Project ID
+        - name: componentId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Microservice ID
+      requestBody:
+        required: true
+        description: Microservice code repository
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/ComponentRepoVO'
+      responses:
+        '200':
+          description: Response body for updating the microservice code repository
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComponentVO'
+
+  /v2/{cloudProjectId}/component/{componentId}/query:
+    get:
+      tags:
+        - Microservice Management
+      description: >
+        Query CodeArts Microservice details, show git code repository of the microservice
+      operationId: ShowMicroserviceDetail
+      parameters:
+        - name: cloudProjectId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Project ID
+        - name: componentId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Microservice ID
+      responses:
+        '200':
+          description: Response body for querying microservice details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComponentVO'
+
+  /v2/{cloudProjectId}/component/list/query:
+    post:
+      tags:
+        - Microservice Management
+      description: >
+        Query CodeArts Microservices list, a microservice is linked to a code repository, 
+        a microservice can have deployment configurations,
+        and can be deployed in a CodeArts release environment
+      operationId: ListMicroservice
+      parameters:
+        - name: cloudProjectId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Project ID
+      requestBody:
+        required: true
+        description: Request body for querying the microservice list
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryComponentVO'
+      responses:
+        '200':
+          description: Response body for querying the microservice list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageComponentVO'
+  /v2/{cloudProjectId}/component/create:
+    post:
+      tags:
+        - Microservice Management
+      description: >
+        Create CodeArts microservice,
+        choose git code repository, 
+        after you create the microservice, 
+        you can add deployment configurations for it,
+        and deployed the microservice in a CodeArts release environment with the deployment configuration
+      operationId: CreateMicroservice
+      parameters:
+        - name: cloudProjectId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Project ID
+      requestBody:
+        required: true
+        description: Response body for creating the microservice
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateComponentVO'
+      responses:
+        '200':
+          description: Microservice ID
+          content:
+            application/json:
+              schema:
+                type: string
+  /v2/{cloudProjectId}/component/{componentId}/delete:
+    delete:
+      tags:
+        - Microservice Management
+      description: Delete CodeArts microservice
+      operationId: DeleteMicroservice
+      parameters:
+        - name: cloudProjectId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Project ID
+        - name: componentId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Microservice ID
+      responses:
+        '200':
+          description: Microservice ID
+          content:
+            application/json:
+              schema:
+                type: string
+components:
+  securitySchemes:
+    AuthToken:
+      type: apiKey
+      name: x-auth-token
+      in: header
+  schemas:
+    UpdateComponentVO:
+      type: object
+      required:
+        - desc
+      properties:
+        desc:
+          type: string
+          example: '' 
+          description: Description
+    ComponentVO:
+      type: object
+      properties:
+        id:
+          type: string
+          example: f7ced2341b204d2b82c607c6f0de5b4a
+          description: Microservice ID
+        name:
+          type: string
+          example: 11
+          description: Microservice name
+        type:
+          type: string
+          example: microservice
+          description: Type
+        description:
+          type: string
+          example: 112
+          description: Description
+        status:
+          type: string
+          example: active
+          description: Status
+        parent_id:
+          type: string
+          example: null
+          description: 父ID
+        cloud_project_id:
+          type: string
+          example: 2d09f712e9504b61b034cc8f40e475a8
+          description: Project ID
+        repos:
+          items:
+            $ref: '#/components/schemas/ComponentRepoVO'
+          description: Microservice code repository
+          type: array
+        is_followed:
+          type: boolean
+          example: null
+          description: Whether the component is followed
+        creator_id:
+          type: string
+          example: 05d8ca972f114765a8984795a8aa4d41
+          description: Creator ID
+        creator_name:
+          type: string
+          example: p_test5
+          description: Creator name
+        create_time:
+          type: string
+          example: 1709260209
+          description: The time when the component was created.
+        updater_id:
+          type: string
+          example: 05d8ca972f114765a8984795a8aa4d41
+          description: The ID of the user who updated the component.
+        updater_name:
+          type: string
+          example: p_test5
+          description: The name of the user who updated the component.
+        update_time:
+          type: string
+          example: 1719318495
+          description: The time when the component was updated.
+    ComponentRepoVO:
+      type: object
+      required:
+        - type
+        - repo_id
+        - git_url
+        - branch
+        - language
+        - http_url
+      properties:
+        type:
+          type: string
+          example: codehub
+          description: The type of the repository. It can be codehub or gitlab.
+        repo_id:
+          type: string
+          example: 804934
+          description: The ID of the repository.
+        http_url:
+          type: string
+          example: https://example.com/test00001/maven.git
+          description: The HTTP URL of the repository.
+        git_url:
+          type: string
+          example: git@example.com:test00001/maven.git
+          required:
+            - git_url
+          description: WarehouseGIT address, An SSH Git repository address is a secure URL-like string used to connect and interact with a remote Git repository over the SSH protocol.
+        branch:
+          type: string
+          example: master
+          description: Branch
+          required:
+            - branch 
+        language:
+          type: string
+          example: 
+          required:
+            - language
+          description: The programming language of the component, should be one of the following - java, python, go, nodejs, php, none, other.
+        endpoint_id:
+          type: string
+          example: ''
+          description: The endpoint ID of the component.
+    QueryComponentVO:
+      type: object
+      required:
+        - offset
+        - limit
+      properties:
+        offset:
+          type: integer
+          format: int32
+          example: 0
+          description: Offset
+        limit:
+          type: integer
+          format: int32
+          example: 10
+          description: Size
+        name:
+          type: string
+          example: ''
+          description: Microservice name
+        sort_dir:
+          type: string
+          example: ''
+          description: Sorting direction
+    PageComponentVO:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComponentVO'
+          description: Data
+        total:
+          type: integer
+          format: int32
+          example: 0
+          description: Total number of records
+    CreateComponentVO:
+      type: object
+      required:
+        - name
+        - type
+        - parent_id
+        - desc
+        - repos
+      properties:
+        name:
+          type: string
+          example: aaa
+          description: The name should consist only of letters, numbers and _ without spaces or special characters.
+        type:
+          type: string
+          example: microservice
+          description: The type of the component. It can be microservice or application.
+        parent_id:
+          type: string
+          example: null
+          description: The parent ID of the component.
+        desc:
+          type: string
+          example: ''
+          description: The description of the component.
+        repos:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComponentRepoVO'
+          description: The repositories of the component.

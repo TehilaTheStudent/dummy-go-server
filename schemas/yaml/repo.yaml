@@ -1,0 +1,127 @@
+openapi: 3.0.0
+info:
+  title: CodeArts Repo API
+  version: v1.0
+  description: OpenAPI specification for the CodeArts Repo module.
+servers:
+  - url: https://codehub-ext.ap-southeast-3.myhuaweicloud.com
+security:
+  - AuthToken: []
+paths:
+  /v2/projects/{project_uuid}/repositories:
+    get:
+      description: >
+        List all CodeArts Repo repositories in a project, can add search query with the name of the repo
+      operationId: listProjectRepositories
+      parameters:
+        - name: project_uuid
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page_index
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: "Page index, starting from 1"
+        - name: page_size
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: "Record number on each page"
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "Search keyword"
+      responses:
+        "200":
+          description: List of repositories
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RepoListInfoV2"
+components:
+    securitySchemes:
+        AuthToken:
+          type: apiKey
+          name: x-auth-token
+          in: header
+    schemas:
+      RepoListInfoV2:
+        type: object
+        properties:
+          repositories:
+            type: array
+            items:
+              $ref: "#/components/schemas/RepoInfoV2"
+            description: "Repository list"
+          total:
+            type: integer
+            description: "Total number of repositories"
+      RepoInfoV2:
+        type: object
+        properties:
+          created_at:
+            type: string
+          creator_name:
+            type: string
+          domain_name:
+            type: string
+          group_name:
+            type: string
+            description: "Repository group name (Segment following the domain name and before the repository name in the clone address. Example: git@repo.alpha.devcloud.intest.com:Demo00228/testword.git. Repository group name: Demo00228.)"
+          https_url:
+            type: string
+            description: "URL for cloning repositories using HTTPS"
+          iam_user_uuid:
+            type: string
+            description: "IAM user UUID"
+          is_owner:
+            type: integer
+            description: "Whether the current user is the repository creator. 1: Yes. 0: No"
+          lfs_size:
+            type: string
+            description: "Repository LFS capacity in MB. If the capacity is greater than 1,024 MB, the unit is GB."
+          project_is_deleted:
+            type: string
+            description: "Whether the project is deleted"
+          project_uuid:
+            type: string
+            description: "Project ID. For details, see Obtaining a Project ID."
+          repository_id:
+            type: integer
+            description: "Repository short ID"
+          repository_name:
+            type: string
+            description: "Repository name"
+          repository_size:
+            type: string
+            description: "Total repository capacity = Repository LFS capacity + Git repository capacity. The unit is MB. If the capacity is greater than 1,024 MB, the unit is GB."
+          repository_uuid:
+            type: string
+            description: "Repository UUID, which is returned by the CreateRepository API."
+          ssh_url:
+            type: string
+            description: "URL for cloning repositories using SSH"
+          star:
+            type: boolean
+            description: "Whether you have followed the repository"
+          status:
+            type: integer
+            description: "Repository status. 0: Created. 1: Creating. 2: Failed. 3: Frozen. 4: Closed."
+          updated_at:
+            type: string
+            description: "Update time"
+          userRole:
+            type: integer
+            description: "Your permission in the repository. 20: Readonly member. 30: Common member. 40: Administrator."
+          visibility_level:
+            type: integer
+            description: "Visibility. 0: Private. 20: Public"
+          web_url:
+            type: string
+            description: "Web URL. If you access it, the repository details page is displayed."

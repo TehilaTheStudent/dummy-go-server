@@ -1,0 +1,594 @@
+openapi: 3.0.0
+info:
+  title: CodeArts Repo API
+  version: v1.0
+  description: OpenAPI specification for the CodeArts Repo module.
+servers:
+  - url: https://codehub-ext.ap-southeast-3.myhuaweicloud.com
+security:
+  - AuthToken: []
+paths:
+  /v2/repositories/{repository_id}/merge_request:
+    get:
+      summary: Get merge request list of a repository in CodeArts Repo.
+      operationId: ListRepositoryMergeRequests
+      parameters:
+        - name: repository_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [opened, closed, merged, locked, all]
+            default: all
+          description: "MR status. Values: opened, closed, merged, locked, all. Default: all."
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: string
+            default: '1'
+          description: "Page number. A positive integer. Default: 1."
+        - name: per_page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 2147483647
+            default: 20
+          description: "Number of records displayed on each page. Range: 0–2147483647. Default: 20."
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 100
+          description: "String contained in MR titles or descriptions. Max. 100 characters."
+      responses:
+        "200":
+          description: List of repositories
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MergeResult"
+  /v2/repositories/{repository_id}/merge_requests/{merge_request_iid}/discussions:
+    get:
+      summary: Get reviews for a merge request in CodeArts Repo.
+      operationId: GetMergeRequestDiscussions
+      parameters:
+        - name: repository_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: merge_request_iid
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - user
+              - system
+          description: "Review type"
+        - name: unresolved
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "Whether the review is unsolved"
+        - name: author_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: "Filtered review comments created by user. The value can be user ID or username."
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+          description: "Number of the page whose review comments will be returned."
+        - name: per_page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+          description: "Every page with review comments will be returned."
+      responses:
+        "200":
+          description: MR reviews of a repository
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MergeRequestDiscussionDto"
+  /v4/repositories/{repository_id}/merge-requests/{merge_request_iid}/actual-head-pipeline:
+    get:
+      summary: Get Merge Request last executed pipeline in CodeArts Repo.
+      operationId: GetMergeRequestPipeline
+      parameters:
+        - name: repository_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: merge_request_iid
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Actual head pipeline of a merge request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MergeRequestPipeline"
+components:
+  securitySchemes:
+      AuthToken:
+        type: apiKey
+        name: x-auth-token
+        in: header
+  schemas:
+    MergeResult:
+      type: object
+      properties:
+        closed:
+          type: integer
+          description: Number of closed MRs.
+          minimum: 0
+          maximum: 2147483647
+        merge_requests:
+          type: array
+          items:
+            $ref: '#/components/schemas/MergeRequestsItem'
+          description: MR list.
+        merged:
+          type: integer
+          description: Number of merged MRs.
+          minimum: 0
+          maximum: 2147483647
+        opened:
+          type: integer
+          description: Number of open MRs.
+          minimum: 0
+          maximum: 2147483647
+        total:
+          type: integer
+          description: Total number of MRs.
+          minimum: 0
+          maximum: 2147483647
+    MergeRequestsItem:
+      type: object
+      properties:
+        author:
+          $ref: '#/components/schemas/Author'
+          description: MR author.
+        closed_at:
+          type: string
+          description: Time when an MR was closed.
+        created_at:
+          type: string
+          description: Time when an MR was created.
+        description:
+          type: string
+          description: MR description.
+        devcloud_source_branch:
+          type: string
+          description: MR source branch.
+        id:
+          type: integer
+          description: MR ID.
+          minimum: 0
+          maximum: 2147483647
+        iid:
+          type: integer
+          description: Sequence number of an MR in the current repository.
+          minimum: 0
+          maximum: 2147483647
+        merge_request_assignee_list:
+          type: array
+          items:
+            $ref: '#/components/schemas/Author'
+          description: MR reviewer information.
+        merge_status:
+          type: string
+          description: Whether an MR can be merged.
+          enum: [can_be_merged, cannot_be_merged, unchecked, cannot_be_merged_recheck]
+        source_branch:
+          type: string
+          description: MR source branch name.
+        state:
+          type: string
+          description: MR status.
+          enum: [opened, closed, merged, locked]
+        target_branch:
+          type: string
+          description: MR target branch name.
+        title:
+          type: string
+          description: MR title.
+        updated_at:
+          type: string
+          description: Last update time of an MR.
+    Author:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: User ID.
+        name:
+          type: string
+          description: Username.
+        state:
+          type: string
+          description: User status.
+        username:
+          type: string
+          description: IAM user ID.
+        avatar_url:
+          type: string
+          description: Profile picture URL.
+        web_url:
+          type: string
+          description: Web URL.
+    MergeRequestDiscussionDto:
+      type: object
+      properties:
+        id:
+          type: string
+          description: "Comment ID"
+        individual_note:
+          type: boolean
+          description: "Individual review or not."
+        notes:
+          type: array
+          items:
+            $ref: "#/components/schemas/NoteDto"
+          description: "Main review and reply list"
+          minItems: 0
+          maxItems: 1
+        project_id:
+          type: integer
+          description: "Repository ID"
+          minimum: 1
+          maximum: 2147483647
+        noteable_type:
+          type: string
+          description: "Object type"
+        commit_id:
+          type: string
+          description: "Associated commit ID"
+        project_full_path:
+          type: string
+          description: "Repository path"
+        a_mode:
+          type: string
+          description: "Old file mode"
+        b_mode:
+          type: string
+          description: "New file mode"
+        deleted_file:
+          type: boolean
+          description: "Whether to delete files during the modification"
+        new_file:
+          type: boolean
+          description: "Whether to add files during the modification"
+        resolved:
+          type: boolean
+          description: "Whether the review is solved"
+        archived:
+          type: boolean
+          description: "Whether the review is archived"
+        review_categories:
+          type: string
+          description: "Review type"
+        review_categories_en:
+          type: string
+          description: "Review type"
+        review_modules:
+          type: string
+          description: "Review module"
+        severity:
+          type: string
+          description: "Severity"
+        severity_en:
+          type: string
+          description: "Severity"
+        assignee:
+          $ref: "#/components/schemas/UserBasicDto"
+        proposer:
+          $ref: "#/components/schemas/UserBasicDto"
+        merge_request_version_params:
+          $ref: "#/components/schemas/MergeRequestVersionParamsDto"
+        diff_file:
+          type: string
+          description: "Changed file"
+        added_lines:
+          type: integer
+          description: "Added lines"
+          minimum: 1
+          maximum: 2147483647
+        removed_lines:
+          type: integer
+          description: "Deleted lines"
+          minimum: 1
+          maximum: 2147483647
+    NoteDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: "Comment ID, which is not shared by the main comment and reply."
+          minimum: 1
+          maximum: 2147483647
+        type:
+          type: string
+          description: "Note type"
+        body:
+          type: string
+          description: "Review content"
+        attachment:
+          type: string
+          description: "Attachment"
+        author:
+          $ref: "#/components/schemas/UserBasicDto"
+        created_at:
+          type: string
+          description: "Creation time"
+        updated_at:
+          type: string
+          description: "Update time"
+        system:
+          type: boolean
+          description: "Whether the log is generated by the system"
+        noteable_id:
+          type: integer
+          description: "Target ID"
+          minimum: 1
+          maximum: 2147483647
+        noteable_type:
+          type: string
+          description: "Type"
+        commit_id:
+          type: string
+          description: "Associated commit ID"
+        resolvable:
+          type: boolean
+          description: "Whether can be solved"
+        is_reply:
+          type: boolean
+          description: "Whether the review is replied"
+        resolved_by:
+          $ref: "#/components/schemas/UserBasicDto"
+        noteable_iid:
+          type: integer
+          description: "MR IID"
+          minimum: 1
+          maximum: 2147483647
+        discussion_id:
+          type: string
+          description: "Review comment ID, which is shared by the main comment and reply."
+        project:
+          type: string
+          description: "Project path"
+        diff_file:
+          type: string
+          description: "Changed file"
+        diff:
+          type: string
+          description: "Changed content"
+        archived:
+          type: boolean
+          description: "Whether it is archived"
+        review_categories:
+          type: string
+          description: "Review type"
+        review_categories_en:
+          type: string
+          description: "Review type"
+        review_modules:
+          type: string
+          description: "Review module"
+        severity:
+          type: string
+          description: "Severity"
+        severity_en:
+          type: string
+          description: "Severity"
+        file_path:
+          type: string
+          description: "File path"
+        line:
+          type: string
+          description: "Line No."
+        assignee:
+          $ref: "#/components/schemas/UserBasicDto"
+        proposer:
+          $ref: "#/components/schemas/UserBasicDto"
+        position:
+          $ref: "#/components/schemas/PositionDto"
+        resolved:
+          type: boolean
+          description: "Whether it is resolved"
+        is_outdated:
+          type: boolean
+          description: "Whether it is outdated"
+    UserBasicDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: "User ID"
+          minimum: 1
+          maximum: 2147483647
+        name:
+          type: string
+          description: "Name"
+        username:
+          type: string
+          description: "Username"
+        state:
+          type: string
+          description: "Status"
+        avatar_url:
+          type: string
+          description: "Avatar URL"
+        avatar_path:
+          type: string
+          description: "Avatar path"
+        email:
+          type: string
+          description: "Email"
+        web_url:
+          type: string
+          description: "Homepage"
+        nick_name:
+          type: string
+          description: "Alias"
+        tenant_name:
+          type: string
+          description: "Tenant name"
+    PositionDto:
+      type: object
+      properties:
+        base_sha:
+          type: string
+          description: "Base commit node of the source branch"
+        start_sha:
+          type: string
+          description: "Latest commit node of the target branch"
+        head_sha:
+          type: string
+          description: "Latest commit node of the source branch"
+        old_path:
+          type: string
+          description: "Old file path"
+        new_path:
+          type: string
+          description: "New file path"
+        position_type:
+          type: string
+          description: "Change type"
+        old_line:
+          type: integer
+          description: "Old line No."
+        new_line:
+          type: integer
+          description: "New line No."   
+    MergeRequestVersionParamsDto:
+      type: object
+      properties:
+        diff_id:
+          type: integer
+
+    ActualHeadPipelineStage:
+      type: object
+      properties:
+        id:
+          type: integer
+        repository_id:
+          type: integer
+        pipeline_id:
+          type: integer
+        name:
+          type: string
+        sort_id:
+          type: integer
+          nullable: true
+        status:
+          type: string
+
+    ActualHeadPipelineData:
+      type: object
+      properties:
+        id:
+          type: integer
+        web_url:
+          type: string
+        sha:
+          type: string
+        ref:
+          type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+        finished_at:
+          type: string
+          format: date-time
+        repository_id:
+          type: integer
+        is_invalid:
+          nullable: true
+        type:
+          type: string
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActualHeadPipelineStage'
+        is_latest:
+          type: boolean
+        trigger_user:
+          nullable: true
+        all_job_finished:
+          type: boolean
+
+    MergeRequestPipeline:
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/ActualHeadPipelineData'
+        is_valid:
+          type: boolean
+          description: "Whether the pipeline data is valid."
+        start_sha:
+          type: string
+          description: "Latest commit SHA of the target branch. (Optional, not in example)"
+        commit_id:
+          type: string
+          description: "Latest commit SHA of the source branch. (Optional, not in example)"
+      example:
+        data:
+          id: 58165
+          web_url: "https://devcloud.ap-southeast-3.huaweicloud.com/b3f25c9ab5cb457b97aa19bbc06b2743/app_with_many_types_of_k8s_resources/pipelines/58165"
+          sha: "fd46610c79e979561fc44cf8ef6140066ef99580"
+          ref: "feature-1"
+          status: "success"
+          created_at: "2025-06-09T09:07:21.000+08:00"
+          updated_at: "2025-06-09T09:07:22.000+08:00"
+          started_at: "2025-06-09T09:07:21.000+08:00"
+          finished_at: "2025-06-09T09:07:22.000+08:00"
+          repository_id: 955165
+          is_invalid: null
+          type: "MERGE REQUEST"
+          stages:
+            - id: 112963
+              repository_id: 955165
+              pipeline_id: 58165
+              name: "external"
+              sort_id: null
+              status: "success"
+          is_latest: true
+          trigger_user: null
+          all_job_finished: true
+        is_valid: true
